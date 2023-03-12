@@ -67,25 +67,109 @@ func (trans TranslatedData) String() string {
 		trans.Register)
 }
 
+type LogDataSection1 struct {
+	Status                      uint16
+	PV1_Voltage                 int16
+	PV2_Voltage                 int16
+	PV3_Voltage                 int16
+	Battery_Voltage             int16
+	SOC                         int8
+	SOH                         int8
+	_                           int16
+	PV_Power                    int16
+	PV1_Power                   int16
+	PV2_Power                   int16
+	PV3_Power                   int16
+	Charge_Power                int16
+	Discharge_Power             int16
+	Voltage_AC_R                int16
+	Voltage_AC_S                int16
+	Voltage_AC_T                int16
+	Frequency_Grid              int16
+	ActiveCharge_Power          int16
+	ActiveInverter_Power        int16
+	Inductor_Current            int16
+	Grid_Power_Factor           int16
+	Voltage_EPS_R               int16
+	Voltage_EPS_S               int16
+	Voltage_EPS_T               int16
+	Frequency_EPS               int16
+	Active_EPS_Power            int16
+	Apparent_EPS_Power          int16
+	Power_To_Grid               int16
+	Power_From_Grid             int16
+	PV1_Energy_Today            int16
+	PV2_Energy_Today            int16
+	PV3_Energy_Today            int16
+	ActiveInverter_Energy_Today int16
+	AC_Charging_Today           int16
+	Charging_Today              int16
+	Discharging_Today           int16
+	EPS_Today                   int16
+	Exported_Today              int16
+	Grid_Today                  int16
+	Bus1_Voltage                int16
+	Bus2_Voltage                int16
+}
+
+type LogDataSection2 struct {
+	PV1_Energy_Total            int16
+	PV2_Energy_Total            int16
+	PV3_Energy_Total            int16
+	ActiveInverter_Energy_Total int16
+	AC_Charging_Total           int16
+	Charging_Total              int16
+	Discharging_Total           int16
+	EPS_Total                   int16
+	Exported_Total              int16
+	Grid_Total                  int16
+	FaultCode                   uint16
+	WarningCode                 uint16
+	Inner_Temperature           int16
+	Radiator1_Temperature       int16
+	Radiator2_Temperature       int16
+	Battery_Temperature         int16
+	_                           int16
+	Runtime                     int16
+}
+
+type LogDataSection3 struct {
+	BatteryComType               int16
+	BMS_Max_Charge_Current       int16
+	BMS_Max_Discharge_Current    int16
+	BMS_Charge_Voltage_Reference int16
+	BMS_Discharge_Cutoff         int16
+	BMS_Status                   [10]int16
+	BMS_Inverter_Status          int16
+	Battery_Parallel_Count       int16
+	Battery_Capacity             int16
+	Battery_Current              int16
+	BMS_Event1                   int16
+	BMS_Event2                   int16
+	MaxCell_Voltage              int16
+	MinCell_Voltage              int16
+	MaxCell_Temp                 int16
+	MinCell_Temp                 int16
+	BMS_FW_Update_State          int16
+	Cycle_Count                  int16
+	BatteryInverter_Voltage      int16
+}
+
 type LogData struct {
-	Status          uint16
-	PV1_Voltage     int16
-	PV2_Voltage     int16
-	PV3_Voltage     int16
-	Battery_Voltage int16
-	SOC             int8
-	SOH             int8
+	Section1 LogDataSection1
+	Section2 LogDataSection2
+	Section3 LogDataSection3
 }
 
 func (log LogData) String() string {
 	return fmt.Sprintf("Status: %04X\nPV1: %f\nPV2: %f\nPV3: %f\nBAT: %f\nSOC: %d\nSOH: %d\n",
-		log.Status,
-		float32(log.PV1_Voltage)/10.0,
-		float32(log.PV2_Voltage)/10.0,
-		float32(log.PV3_Voltage)/10.0,
-		float32(log.Battery_Voltage)/10.0,
-		log.SOC,
-		log.SOH)
+		log.Section1.Status,
+		float32(log.Section1.PV1_Voltage)/10.0,
+		float32(log.Section1.PV2_Voltage)/10.0,
+		float32(log.Section1.PV3_Voltage)/10.0,
+		float32(log.Section1.Battery_Voltage)/10.0,
+		log.Section1.SOC,
+		log.Section1.SOH)
 }
 
 func test(frame []byte, length uint16) {
@@ -123,13 +207,41 @@ func test(frame []byte, length uint16) {
 
 		if data.DeviceFunction == DEVICE_READINPUT {
 			log := LogData{}
-			err := binary.Read(reader, binary.LittleEndian, &log)
-			if err != nil {
-				print("Error decoding:", err.Error())
-				return
+			if data.Register == 0 {
+				if header.PacketLength == 285 {
+					fmt.Printf("ReadAll: %d\n", header.PacketLength)
+					err := binary.Read(reader, binary.LittleEndian, &log)
+					if err != nil {
+						print("Error decoding:", err.Error())
+						return
+					}
+					fmt.Print(log)
+				} else if header.PacketLength == 111 {
+					fmt.Printf("Read1: %d\n", header.PacketLength)
+					err := binary.Read(reader, binary.LittleEndian, &log.Section1)
+					if err != nil {
+						print("Error decoding:", err.Error())
+						return
+					}
+					fmt.Print(log)
+				}
+			} else if data.Register == 40 && header.PacketLength == 111 {
+				fmt.Printf("Read2: %d\n", length)
+				err := binary.Read(reader, binary.LittleEndian, &log.Section2)
+				if err != nil {
+					print("Error decoding:", err.Error())
+					return
+				}
+				fmt.Print(log)
+			} else if data.Register == 80 && header.PacketLength == 111 {
+				fmt.Printf("Read3: %d\n", length)
+				err := binary.Read(reader, binary.LittleEndian, &log.Section3)
+				if err != nil {
+					print("Error decoding:", err.Error())
+					return
+				}
+				fmt.Print(log)
 			}
-
-			fmt.Print(log)
 		}
 	} else if header.Function == FUNCTION_READ {
 		println("Function FUNCTION_READ")
