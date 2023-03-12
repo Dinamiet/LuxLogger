@@ -56,6 +56,7 @@ type TranslatedData struct {
 	DeviceFunction uint8
 	SerialNumber   [10]byte
 	Register       uint16
+	_              uint8
 }
 
 func (trans TranslatedData) String() string {
@@ -77,7 +78,7 @@ type LogData struct {
 }
 
 func (log LogData) String() string {
-	return fmt.Sprintf("Status: %04X\nPV1: %f\nPV2: %f\nPV3: %f\nBAT: %f\nSOC: %d\nSOH:%d\n",
+	return fmt.Sprintf("Status: %04X\nPV1: %f\nPV2: %f\nPV3: %f\nBAT: %f\nSOC: %d\nSOH: %d\n",
 		log.Status,
 		float32(log.PV1_Voltage)/10.0,
 		float32(log.PV2_Voltage)/10.0,
@@ -120,9 +121,7 @@ func test(frame []byte, length uint16) {
 
 		fmt.Print(data)
 
-		// value_offset := 14
-
-		if data.DeviceFunction == 0x01 {
+		if data.DeviceFunction == DEVICE_READINPUT {
 			log := LogData{}
 			err := binary.Read(reader, binary.LittleEndian, &log)
 			if err != nil {
@@ -132,7 +131,6 @@ func test(frame []byte, length uint16) {
 
 			fmt.Print(log)
 		}
-
 	} else if header.Function == FUNCTION_READ {
 		println("Function FUNCTION_READ")
 	} else if header.Function == FUNCTION_WRITE {
@@ -167,6 +165,6 @@ func main() {
 		}
 		data := hex.EncodeToString(received[:numRead])
 		println("%d -> %s\n", numRead, data)
-		test(received[:numRead], uint16(numRead))
+		go test(received[:numRead], uint16(numRead))
 	}
 }
