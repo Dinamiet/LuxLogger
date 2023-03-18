@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -162,96 +162,83 @@ type LogData struct {
 }
 
 func (log LogData) String() string {
-	return fmt.Sprintf("Status: %04X\nPV1: %f\nPV2: %f\nPV3: %f\nBAT: %f\nSOC: %d\nSOH: %d\n",
-		log.Section1.Status,
-		float32(log.Section1.PV1_Voltage)/10.0,
-		float32(log.Section1.PV2_Voltage)/10.0,
-		float32(log.Section1.PV3_Voltage)/10.0,
-		float32(log.Section1.Battery_Voltage)/10.0,
-		log.Section1.SOC,
-		log.Section1.SOH)
+	json, err := json.MarshalIndent(log, "", "\t")
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	return string(json)
 }
 
-func test(frame []byte, length uint16) {
+func (log LogData) Decode(frame []byte, length uint16) bool {
 	header := Header{}
 	reader := bytes.NewReader(frame)
 	err := binary.Read(reader, binary.LittleEndian, &header)
 	if err != nil {
-		println("Error decoding:", err.Error())
+		println("Error reading header:", err.Error())
+		return false
 	}
-
-	fmt.Print(header)
 
 	if PREFIX != header.Prefix {
 		println("Invalid header prefix:", header.Prefix)
-		return
+		return false
 	}
 
 	if (length - 6) != header.PacketLength {
 		println("Invalid length:", header.PacketLength)
-		return
+		return false
 	}
 
-	if header.Function == FUNCTION_HEARTBEAT {
-		println("Function FUNCTION_HEARTBEAT")
-	} else if header.Function == FUNCTION_DATA {
-		println("Function FUNCTION_DATA")
-		data := TranslatedData{}
-		err := binary.Read(reader, binary.LittleEndian, &data)
+	if header.Function != FUNCTION_DATA {
+		println("Unhandled header function:", header.Function)
+		return false
+	}
+
+	data := TranslatedData{}
+	err = binary.Read(reader, binary.LittleEndian, &data)
+	if err != nil {
+		println("Error reading Translated data:", err.Error())
+		return false
+	}
+
+	if data.DeviceFunction != DEVICE_READINPUT {
+		println("Unhandled device function:", data.DeviceFunction)
+		return false
+	}
+
+	switch {
+	case data.Register == 0 && header.PacketLength == 285:
+		err = binary.Read(reader, binary.LittleEndian, &log)
 		if err != nil {
-			print("Error decoding:", err.Error())
-			return
+			print("Error reading LogData:", err.Error())
+			return false
 		}
-
-		fmt.Print(data)
-
-		if data.DeviceFunction == DEVICE_READINPUT {
-			log := LogData{}
-			if data.Register == 0 {
-				if header.PacketLength == 285 {
-					fmt.Printf("ReadAll: %d\n", header.PacketLength)
-					err := binary.Read(reader, binary.LittleEndian, &log)
-					if err != nil {
-						print("Error decoding:", err.Error())
-						return
-					}
-					fmt.Print(log)
-				} else if header.PacketLength == 111 {
-					fmt.Printf("Read1: %d\n", header.PacketLength)
-					err := binary.Read(reader, binary.LittleEndian, &log.Section1)
-					if err != nil {
-						print("Error decoding:", err.Error())
-						return
-					}
-					fmt.Print(log)
-				}
-			} else if data.Register == 40 && header.PacketLength == 111 {
-				fmt.Printf("Read2: %d\n", length)
-				err := binary.Read(reader, binary.LittleEndian, &log.Section2)
-				if err != nil {
-					print("Error decoding:", err.Error())
-					return
-				}
-				fmt.Print(log)
-			} else if data.Register == 80 && header.PacketLength == 111 {
-				fmt.Printf("Read3: %d\n", length)
-				err := binary.Read(reader, binary.LittleEndian, &log.Section3)
-				if err != nil {
-					print("Error decoding:", err.Error())
-					return
-				}
-				fmt.Print(log)
-			}
+	case data.Register == 0 && header.PacketLength == 111:
+		err = binary.Read(reader, binary.LittleEndian, &log.Section1)
+		if err != nil {
+			print("Error reading LogData.Section1:", err.Error())
+			return false
 		}
-	} else if header.Function == FUNCTION_READ {
-		println("Function FUNCTION_READ")
-	} else if header.Function == FUNCTION_WRITE {
-		println("Function FUNCTION_WRITE")
-	} else {
-		println("Function UNKNOWN: ", header.Function)
+	case data.Register == 40 && header.PacketLength == 111:
+		err = binary.Read(reader, binary.LittleEndian, &log.Section2)
+		if err != nil {
+			print("Error reading LogData.Section2:", err.Error())
+			return false
+		}
+	case data.Register == 80 && header.PacketLength == 111:
+		err = binary.Read(reader, binary.LittleEndian, &log.Section3)
+		if err != nil {
+			print("Error reading LogData.Section3:", err.Error())
+			return false
+		}
+	default:
+		println("Unhandled register:", data.Register)
+		return false
 	}
 
-	print("\n")
+	fmt.Print(log)
+	return true
 }
 
 func main() {
@@ -275,8 +262,7 @@ func main() {
 			println("Read data failed:", err.Error())
 			os.Exit(3)
 		}
-		data := hex.EncodeToString(received[:numRead])
-		println("%d -> %s\n", numRead, data)
-		go test(received[:numRead], uint16(numRead))
+		log := LogData{}
+		go log.Decode(received[:numRead], uint16(numRead))
 	}
 }
