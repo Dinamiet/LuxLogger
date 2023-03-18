@@ -76,7 +76,6 @@ type LogDataSection1 struct {
 	SOC                         int8
 	SOH                         int8
 	_                           int16
-	PV_Power                    int16
 	PV1_Power                   int16
 	PV2_Power                   int16
 	PV3_Power                   int16
@@ -113,24 +112,25 @@ type LogDataSection1 struct {
 }
 
 type LogDataSection2 struct {
-	PV1_Energy_Total            int16
-	PV2_Energy_Total            int16
-	PV3_Energy_Total            int16
-	ActiveInverter_Energy_Total int16
-	AC_Charging_Total           int16
-	Charging_Total              int16
-	Discharging_Total           int16
-	EPS_Total                   int16
-	Exported_Total              int16
-	Grid_Total                  int16
-	FaultCode                   uint16
-	WarningCode                 uint16
+	PV1_Energy_Total            int32
+	PV2_Energy_Total            int32
+	PV3_Energy_Total            int32
+	ActiveInverter_Energy_Total int32
+	AC_Charging_Total           int32
+	Charging_Total              int32
+	Discharging_Total           int32
+	EPS_Total                   int32
+	Exported_Total              int32
+	Grid_Total                  int32
+	FaultCode                   uint32
+	WarningCode                 uint32
 	Inner_Temperature           int16
 	Radiator1_Temperature       int16
 	Radiator2_Temperature       int16
 	Battery_Temperature         int16
 	_                           int16
-	Runtime                     int16
+	Runtime                     int32
+	_                           [18]byte
 }
 
 type LogDataSection3 struct {
@@ -139,7 +139,7 @@ type LogDataSection3 struct {
 	BMS_Max_Discharge_Current    int16
 	BMS_Charge_Voltage_Reference int16
 	BMS_Discharge_Cutoff         int16
-	BMS_Status                   [10]int16
+	BMS_Status                   [10]uint16
 	BMS_Inverter_Status          int16
 	Battery_Parallel_Count       int16
 	Battery_Capacity             int16
