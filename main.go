@@ -7,6 +7,16 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api"
+)
+
+const (
+	INFLUX_URL    = ""
+	INFLUX_API    = ""
+	INFLUX_ORG    = ""
+	INFLUX_BUCKET = ""
 )
 
 const (
@@ -250,10 +260,11 @@ type LogDataRaw struct {
 }
 
 type LogData struct {
-	Raw      LogDataRaw
-	Section1 LogDataSection1
-	Section2 LogDataSection2
-	Section3 LogDataSection3
+	Raw          LogDataRaw
+	SerialNumber string
+	Section1     LogDataSection1
+	Section2     LogDataSection2
+	Section3     LogDataSection3
 }
 
 func (log LogData) String() string {
@@ -289,6 +300,8 @@ func (log *LogData) Decode(frame []byte, length uint16) bool {
 		println("Unhandled header function:", header.Function)
 		return false
 	}
+
+	log.SerialNumber = fmt.Sprintf("%s", header.SerialNumber)
 
 	data := TranslatedData{}
 	err = binary.Read(reader, binary.LittleEndian, &data)
@@ -345,7 +358,6 @@ func (log *LogData) Decode(frame []byte, length uint16) bool {
 	}
 
 	log.Scale()
-	fmt.Print(log)
 	return true
 }
 
@@ -430,10 +442,101 @@ func (log *LogData) Scale() {
 	log.Section3.BatteryInverter_Voltage = float32(log.Raw.Section3.BatteryInverter_Voltage) / 10
 }
 
-func process(frame []byte, length uint16) {
+func (log LogData) InfluxWrite(writter api.WriteAPI) {
+	if log.Section1.Loaded || log.Section2.Loaded || log.Section3.Loaded {
+		dataPoint := influxdb2.NewPointWithMeasurement("Input").AddTag("Serial", log.SerialNumber)
+		if log.Section1.Loaded {
+			dataPoint.AddField("Status", log.Section1.Status)
+			dataPoint.AddField("PV1_Voltage", log.Section1.PV1_Voltage)
+			dataPoint.AddField("PV2_Voltage", log.Section1.PV2_Voltage)
+			dataPoint.AddField("PV3_Voltage", log.Section1.PV3_Voltage)
+			dataPoint.AddField("Battery_Voltage", log.Section1.Battery_Voltage)
+			dataPoint.AddField("SOC", log.Section1.SOC)
+			dataPoint.AddField("SOH", log.Section1.SOH)
+			dataPoint.AddField("PV1_Power", log.Section1.PV1_Power)
+			dataPoint.AddField("PV2_Power", log.Section1.PV2_Power)
+			dataPoint.AddField("PV3_Power", log.Section1.PV3_Power)
+			dataPoint.AddField("Charge_Power", log.Section1.Charge_Power)
+			dataPoint.AddField("Discharge_Power", log.Section1.Discharge_Power)
+			dataPoint.AddField("Voltage_AC_R", log.Section1.Voltage_AC_R)
+			dataPoint.AddField("Voltage_AC_S", log.Section1.Voltage_AC_S)
+			dataPoint.AddField("Voltage_AC_T", log.Section1.Voltage_AC_T)
+			dataPoint.AddField("Frequency_Grid", log.Section1.Frequency_Grid)
+			dataPoint.AddField("ActiveCharge_Power", log.Section1.ActiveCharge_Power)
+			dataPoint.AddField("ActiveInverter_Power", log.Section1.ActiveInverter_Power)
+			dataPoint.AddField("Inductor_Current", log.Section1.Inductor_Current)
+			dataPoint.AddField("Grid_Power_Factor", log.Section1.Grid_Power_Factor)
+			dataPoint.AddField("Voltage_EPS_R", log.Section1.Voltage_EPS_R)
+			dataPoint.AddField("Voltage_EPS_S", log.Section1.Voltage_EPS_S)
+			dataPoint.AddField("Voltage_EPS_T", log.Section1.Voltage_EPS_T)
+			dataPoint.AddField("Frequency_EPS", log.Section1.Frequency_EPS)
+			dataPoint.AddField("Active_EPS_Power", log.Section1.Active_EPS_Power)
+			dataPoint.AddField("Apparent_EPS_Power", log.Section1.Apparent_EPS_Power)
+			dataPoint.AddField("Power_To_Grid", log.Section1.Power_To_Grid)
+			dataPoint.AddField("Power_From_Grid", log.Section1.Power_From_Grid)
+			dataPoint.AddField("PV1_Energy_Today", log.Section1.PV1_Energy_Today)
+			dataPoint.AddField("PV2_Energy_Today", log.Section1.PV2_Energy_Today)
+			dataPoint.AddField("PV3_Energy_Today", log.Section1.PV3_Energy_Today)
+			dataPoint.AddField("ActiveInverter_Energy_Today", log.Section1.ActiveInverter_Energy_Today)
+			dataPoint.AddField("AC_Charging_Today", log.Section1.AC_Charging_Today)
+			dataPoint.AddField("Charging_Today", log.Section1.Charging_Today)
+			dataPoint.AddField("Discharging_Today", log.Section1.Discharging_Today)
+			dataPoint.AddField("EPS_Today", log.Section1.EPS_Today)
+			dataPoint.AddField("Exported_Today", log.Section1.Exported_Today)
+			dataPoint.AddField("Grid_Today", log.Section1.Grid_Today)
+			dataPoint.AddField("Bus1_Voltage", log.Section1.Bus1_Voltage)
+			dataPoint.AddField("Bus2_Voltage", log.Section1.Bus2_Voltage)
+		}
+
+		if log.Section2.Loaded {
+			dataPoint.AddField("PV1_Energy_Total", log.Section2.PV1_Energy_Total)
+			dataPoint.AddField("PV2_Energy_Total", log.Section2.PV2_Energy_Total)
+			dataPoint.AddField("PV3_Energy_Total", log.Section2.PV3_Energy_Total)
+			dataPoint.AddField("ActiveInverter_Energy_Total", log.Section2.ActiveInverter_Energy_Total)
+			dataPoint.AddField("AC_Charging_Total", log.Section2.AC_Charging_Total)
+			dataPoint.AddField("Charging_Total", log.Section2.Charging_Total)
+			dataPoint.AddField("Discharging_Total", log.Section2.Discharging_Total)
+			dataPoint.AddField("EPS_Total", log.Section2.EPS_Total)
+			dataPoint.AddField("Exported_Total", log.Section2.Exported_Total)
+			dataPoint.AddField("Grid_Total", log.Section2.Grid_Total)
+			dataPoint.AddField("FaultCode", log.Section2.FaultCode)
+			dataPoint.AddField("WarningCode", log.Section2.WarningCode)
+			dataPoint.AddField("Inner_Temperature", log.Section2.Inner_Temperature)
+			dataPoint.AddField("Radiator1_Temperature", log.Section2.Radiator1_Temperature)
+			dataPoint.AddField("Radiator2_Temperature", log.Section2.Radiator2_Temperature)
+			dataPoint.AddField("Battery_Temperature", log.Section2.Battery_Temperature)
+			dataPoint.AddField("Runtime", log.Section2.Runtime)
+		}
+
+		if log.Section3.Loaded {
+			dataPoint.AddField("BatteryComType", log.Section3.BatteryComType)
+			dataPoint.AddField("BMS_Max_Charge_Current", log.Section3.BMS_Max_Charge_Current)
+			dataPoint.AddField("BMS_Max_Discharge_Current", log.Section3.BMS_Max_Discharge_Current)
+			dataPoint.AddField("BMS_Charge_Voltage_Reference", log.Section3.BMS_Charge_Voltage_Reference)
+			dataPoint.AddField("BMS_Discharge_Cutoff", log.Section3.BMS_Discharge_Cutoff)
+			dataPoint.AddField("BMS_Status", log.Section3.BMS_Status)
+			dataPoint.AddField("BMS_Inverter_Status", log.Section3.BMS_Inverter_Status)
+			dataPoint.AddField("Battery_Parallel_Count", log.Section3.Battery_Parallel_Count)
+			dataPoint.AddField("Battery_Capacity", log.Section3.Battery_Capacity)
+			dataPoint.AddField("Battery_Current", log.Section3.Battery_Current)
+			dataPoint.AddField("BMS_Event1", log.Section3.BMS_Event1)
+			dataPoint.AddField("BMS_Event2", log.Section3.BMS_Event2)
+			dataPoint.AddField("MaxCell_Voltage", log.Section3.MaxCell_Voltage)
+			dataPoint.AddField("MinCell_Voltage", log.Section3.MinCell_Voltage)
+			dataPoint.AddField("MaxCell_Temp", log.Section3.MaxCell_Temp)
+			dataPoint.AddField("MinCell_Temp", log.Section3.MinCell_Temp)
+			dataPoint.AddField("BMS_FW_Update_State", log.Section3.BMS_FW_Update_State)
+			dataPoint.AddField("Cycle_Count", log.Section3.Cycle_Count)
+			dataPoint.AddField("BatteryInverter_Voltage", log.Section3.BatteryInverter_Voltage)
+		}
+		writter.WritePoint(dataPoint)
+	}
+}
+
+func process(frame []byte, length uint16, influxWriter api.WriteAPI) {
 	log := LogData{}
 	if log.Decode(frame, length) {
-		fmt.Print(log)
+		log.InfluxWrite(influxWriter)
 	}
 }
 
@@ -450,6 +553,9 @@ func main() {
 		os.Exit(2)
 	}
 
+	influxClient := influxdb2.NewClient(INFLUX_URL, INFLUX_API)
+	influxWriter := influxClient.WriteAPI(INFLUX_ORG, INFLUX_BUCKET)
+
 	received := make([]byte, 1024)
 	for {
 
@@ -458,6 +564,6 @@ func main() {
 			println("Read data failed:", err.Error())
 			os.Exit(3)
 		}
-		go process(received[:numRead], uint16(numRead))
+		go process(received[:numRead], uint16(numRead), influxWriter)
 	}
 }
