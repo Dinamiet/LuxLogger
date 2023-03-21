@@ -1,0 +1,12 @@
+[Unit]
+ Description=Logging of Luxpower Inverter data to InfluxDB
+ After=multi-user.target
+
+ [Service]
+ Type=idle
+ ExecStart=/home/pi/luxlogger/LuxLogger
+ WorkingDirectory=/home/pi/luxlogger/
+ Restart=on-failure
+
+ [Install]
+ WantedBy=multi-user.target
