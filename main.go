@@ -95,8 +95,8 @@ type LogDataRawSection1 struct {
 	Voltage_AC_S                int16
 	Voltage_AC_T                int16
 	Frequency_Grid              int16
-	ActiveCharge_Power          int16
 	ActiveInverter_Power        int16
+	ActiveCharge_Power          int16
 	Inductor_Current            int16
 	Grid_Power_Factor           int16
 	Voltage_EPS_R               int16
