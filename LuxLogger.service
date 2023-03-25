@@ -7,6 +7,7 @@
  ExecStart=/home/pi/luxlogger/LuxLogger
  WorkingDirectory=/home/pi/luxlogger/
  Restart=on-failure
+ RestartSec=60s
 
  [Install]
  WantedBy=multi-user.target
