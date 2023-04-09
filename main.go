@@ -21,6 +21,11 @@ const (
 )
 
 const (
+	MQTT_BROKER    = ""
+	MQTT_CLIENT_ID = ""
+)
+
+const (
 	HOST = "mico.lan"
 	PORT = "8000"
 	TYPE = "tcp"
