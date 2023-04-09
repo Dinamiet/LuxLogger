@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 )
@@ -533,10 +534,101 @@ func (log LogData) InfluxWrite(writter api.WriteAPI) {
 	}
 }
 
-func process(frame []byte, length uint16, influxWriter api.WriteAPI) {
+func (log LogData) MqttWrite(client MQTT.Client) {
+	baseTopic := "LuxLogger/" + log.SerialNumber + "/"
+
+	if log.Section1.Loaded {
+		client.Publish(baseTopic+"Status", 1, false, fmt.Sprintf("%d", log.Section1.Status))
+		client.Publish(baseTopic+"PV1_Voltage", 1, false, fmt.Sprintf("%f", log.Section1.PV1_Voltage))
+		client.Publish(baseTopic+"PV2_Voltage", 1, false, fmt.Sprintf("%f", log.Section1.PV2_Voltage))
+		client.Publish(baseTopic+"PV3_Voltage", 1, false, fmt.Sprintf("%f", log.Section1.PV3_Voltage))
+		client.Publish(baseTopic+"Battery_Voltage", 1, false, fmt.Sprintf("%f", log.Section1.Battery_Voltage))
+		client.Publish(baseTopic+"SOC", 1, false, fmt.Sprintf("%f", log.Section1.SOC))
+		client.Publish(baseTopic+"SOH", 1, false, fmt.Sprintf("%f", log.Section1.SOH))
+		client.Publish(baseTopic+"PV1_Power", 1, false, fmt.Sprintf("%f", log.Section1.PV1_Power))
+		client.Publish(baseTopic+"PV2_Power", 1, false, fmt.Sprintf("%f", log.Section1.PV2_Power))
+		client.Publish(baseTopic+"PV3_Power", 1, false, fmt.Sprintf("%f", log.Section1.PV3_Power))
+		client.Publish(baseTopic+"Charge_Power", 1, false, fmt.Sprintf("%f", log.Section1.Charge_Power))
+		client.Publish(baseTopic+"Discharge_Power", 1, false, fmt.Sprintf("%f", log.Section1.Discharge_Power))
+		client.Publish(baseTopic+"Voltage_AC_R", 1, false, fmt.Sprintf("%f", log.Section1.Voltage_AC_R))
+		client.Publish(baseTopic+"Voltage_AC_S", 1, false, fmt.Sprintf("%f", log.Section1.Voltage_AC_S))
+		client.Publish(baseTopic+"Voltage_AC_T", 1, false, fmt.Sprintf("%f", log.Section1.Voltage_AC_T))
+		client.Publish(baseTopic+"Frequency_Grid", 1, false, fmt.Sprintf("%f", log.Section1.Frequency_Grid))
+		client.Publish(baseTopic+"ActiveCharge_Power", 1, false, fmt.Sprintf("%f", log.Section1.ActiveCharge_Power))
+		client.Publish(baseTopic+"ActiveInverter_Power", 1, false, fmt.Sprintf("%f", log.Section1.ActiveInverter_Power))
+		client.Publish(baseTopic+"Inductor_Current", 1, false, fmt.Sprintf("%f", log.Section1.Inductor_Current))
+		client.Publish(baseTopic+"Grid_Power_Factor", 1, false, fmt.Sprintf("%f", log.Section1.Grid_Power_Factor))
+		client.Publish(baseTopic+"Voltage_EPS_R", 1, false, fmt.Sprintf("%f", log.Section1.Voltage_EPS_R))
+		client.Publish(baseTopic+"Voltage_EPS_S", 1, false, fmt.Sprintf("%f", log.Section1.Voltage_EPS_S))
+		client.Publish(baseTopic+"Voltage_EPS_T", 1, false, fmt.Sprintf("%f", log.Section1.Voltage_EPS_T))
+		client.Publish(baseTopic+"Frequency_EPS", 1, false, fmt.Sprintf("%f", log.Section1.Frequency_EPS))
+		client.Publish(baseTopic+"Active_EPS_Power", 1, false, fmt.Sprintf("%f", log.Section1.Active_EPS_Power))
+		client.Publish(baseTopic+"Apparent_EPS_Power", 1, false, fmt.Sprintf("%f", log.Section1.Apparent_EPS_Power))
+		client.Publish(baseTopic+"Power_To_Grid", 1, false, fmt.Sprintf("%f", log.Section1.Power_To_Grid))
+		client.Publish(baseTopic+"Power_From_Grid", 1, false, fmt.Sprintf("%f", log.Section1.Power_From_Grid))
+		client.Publish(baseTopic+"PV1_Energy_Today", 1, false, fmt.Sprintf("%f", log.Section1.PV1_Energy_Today))
+		client.Publish(baseTopic+"PV2_Energy_Today", 1, false, fmt.Sprintf("%f", log.Section1.PV2_Energy_Today))
+		client.Publish(baseTopic+"PV3_Energy_Today", 1, false, fmt.Sprintf("%f", log.Section1.PV3_Energy_Today))
+		client.Publish(baseTopic+"ActiveInverter_Energy_Today", 1, false, fmt.Sprintf("%f", log.Section1.ActiveInverter_Energy_Today))
+		client.Publish(baseTopic+"AC_Charging_Today", 1, false, fmt.Sprintf("%f", log.Section1.AC_Charging_Today))
+		client.Publish(baseTopic+"Charging_Today", 1, false, fmt.Sprintf("%f", log.Section1.Charging_Today))
+		client.Publish(baseTopic+"Discharging_Today", 1, false, fmt.Sprintf("%f", log.Section1.Discharging_Today))
+		client.Publish(baseTopic+"EPS_Today", 1, false, fmt.Sprintf("%f", log.Section1.EPS_Today))
+		client.Publish(baseTopic+"Exported_Today", 1, false, fmt.Sprintf("%f", log.Section1.Exported_Today))
+		client.Publish(baseTopic+"Grid_Today", 1, false, fmt.Sprintf("%f", log.Section1.Grid_Today))
+		client.Publish(baseTopic+"Bus1_Voltage", 1, false, fmt.Sprintf("%f", log.Section1.Bus1_Voltage))
+		client.Publish(baseTopic+"Bus2_Voltage", 1, false, fmt.Sprintf("%f", log.Section1.Bus2_Voltage))
+	}
+
+	if log.Section2.Loaded {
+		client.Publish(baseTopic+"PV1_Energy_Total", 1, false, fmt.Sprintf("%f", log.Section2.PV1_Energy_Total))
+		client.Publish(baseTopic+"PV2_Energy_Total", 1, false, fmt.Sprintf("%f", log.Section2.PV2_Energy_Total))
+		client.Publish(baseTopic+"PV3_Energy_Total", 1, false, fmt.Sprintf("%f", log.Section2.PV3_Energy_Total))
+		client.Publish(baseTopic+"ActiveInverter_Energy_Total", 1, false, fmt.Sprintf("%f", log.Section2.ActiveInverter_Energy_Total))
+		client.Publish(baseTopic+"AC_Charging_Total", 1, false, fmt.Sprintf("%f", log.Section2.AC_Charging_Total))
+		client.Publish(baseTopic+"Charging_Total", 1, false, fmt.Sprintf("%f", log.Section2.Charging_Total))
+		client.Publish(baseTopic+"Discharging_Total", 1, false, fmt.Sprintf("%f", log.Section2.Discharging_Total))
+		client.Publish(baseTopic+"EPS_Total", 1, false, fmt.Sprintf("%f", log.Section2.EPS_Total))
+		client.Publish(baseTopic+"Exported_Total", 1, false, fmt.Sprintf("%f", log.Section2.Exported_Total))
+		client.Publish(baseTopic+"Grid_Total", 1, false, fmt.Sprintf("%f", log.Section2.Grid_Total))
+		client.Publish(baseTopic+"FaultCode", 1, false, fmt.Sprintf("%d", log.Section2.FaultCode))
+		client.Publish(baseTopic+"WarningCode", 1, false, fmt.Sprintf("%d", log.Section2.WarningCode))
+		client.Publish(baseTopic+"Inner_Temperature", 1, false, fmt.Sprintf("%f", log.Section2.Inner_Temperature))
+		client.Publish(baseTopic+"Radiator1_Temperature", 1, false, fmt.Sprintf("%f", log.Section2.Radiator1_Temperature))
+		client.Publish(baseTopic+"Radiator2_Temperature", 1, false, fmt.Sprintf("%f", log.Section2.Radiator2_Temperature))
+		client.Publish(baseTopic+"Battery_Temperature", 1, false, fmt.Sprintf("%f", log.Section2.Battery_Temperature))
+		client.Publish(baseTopic+"Runtime", 1, false, fmt.Sprintf("%d", log.Section2.Runtime))
+	}
+
+	if log.Section3.Loaded {
+		client.Publish(baseTopic+"BatteryComType", 1, false, fmt.Sprintf("%d", log.Section3.BatteryComType))
+		client.Publish(baseTopic+"BMS_Max_Charge_Current", 1, false, fmt.Sprintf("%f", log.Section3.BMS_Max_Charge_Current))
+		client.Publish(baseTopic+"BMS_Max_Discharge_Current", 1, false, fmt.Sprintf("%f", log.Section3.BMS_Max_Discharge_Current))
+		client.Publish(baseTopic+"BMS_Charge_Voltage_Reference", 1, false, fmt.Sprintf("%f", log.Section3.BMS_Charge_Voltage_Reference))
+		client.Publish(baseTopic+"BMS_Discharge_Cutoff", 1, false, fmt.Sprintf("%f", log.Section3.BMS_Discharge_Cutoff))
+		bmsStatus, _ := json.Marshal(log.Section3.BMS_Status)
+		client.Publish(baseTopic+"BMS_Status", 1, false, bmsStatus)
+		client.Publish(baseTopic+"BMS_Inverter_Status", 1, false, fmt.Sprintf("%d", log.Section3.BMS_Inverter_Status))
+		client.Publish(baseTopic+"Battery_Parallel_Count", 1, false, fmt.Sprintf("%d", log.Section3.Battery_Parallel_Count))
+		client.Publish(baseTopic+"Battery_Capacity", 1, false, fmt.Sprintf("%f", log.Section3.Battery_Capacity))
+		client.Publish(baseTopic+"Battery_Current", 1, false, fmt.Sprintf("%f", log.Section3.Battery_Current))
+		client.Publish(baseTopic+"BMS_Event1", 1, false, fmt.Sprintf("%d", log.Section3.BMS_Event1))
+		client.Publish(baseTopic+"BMS_Event2", 1, false, fmt.Sprintf("%d", log.Section3.BMS_Event2))
+		client.Publish(baseTopic+"MaxCell_Voltage", 1, false, fmt.Sprintf("%f", log.Section3.MaxCell_Voltage))
+		client.Publish(baseTopic+"MinCell_Voltage", 1, false, fmt.Sprintf("%f", log.Section3.MinCell_Voltage))
+		client.Publish(baseTopic+"MaxCell_Temp", 1, false, fmt.Sprintf("%f", log.Section3.MaxCell_Temp))
+		client.Publish(baseTopic+"MinCell_Temp", 1, false, fmt.Sprintf("%f", log.Section3.MinCell_Temp))
+		client.Publish(baseTopic+"BMS_FW_Update_State", 1, false, fmt.Sprintf("%d", log.Section3.BMS_FW_Update_State))
+		client.Publish(baseTopic+"Cycle_Count", 1, false, fmt.Sprintf("%d", log.Section3.Cycle_Count))
+		client.Publish(baseTopic+"BatteryInverter_Voltage", 1, false, fmt.Sprintf("%f", log.Section3.BatteryInverter_Voltage))
+	}
+}
+
+func process(frame []byte, length uint16, influxWriter api.WriteAPI, mqttClient MQTT.Client) {
 	log := LogData{}
 	if log.Decode(frame, length) {
 		log.InfluxWrite(influxWriter)
+		log.MqttWrite(mqttClient)
 	}
 }
 
@@ -553,8 +645,19 @@ func main() {
 		os.Exit(2)
 	}
 
+	// Setup Influx
 	influxClient := influxdb2.NewClient(INFLUX_URL, INFLUX_API)
 	influxWriter := influxClient.WriteAPI(INFLUX_ORG, INFLUX_BUCKET)
+
+	// Setup MQTT
+	options := MQTT.NewClientOptions().AddBroker(MQTT_BROKER)
+	options.SetClientID(MQTT_CLIENT_ID)
+	mqttClient := MQTT.NewClient(options)
+
+	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
+		println("Connection to MQTT broker failed:", token.Error())
+		os.Exit(3)
+	}
 
 	received := make([]byte, 1024)
 	for {
@@ -564,6 +667,6 @@ func main() {
 			println("Read data failed:", err.Error())
 			os.Exit(3)
 		}
-		go process(received[:numRead], uint16(numRead), influxWriter)
+		go process(received[:numRead], uint16(numRead), influxWriter, mqttClient)
 	}
 }
